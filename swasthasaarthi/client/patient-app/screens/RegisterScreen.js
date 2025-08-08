@@ -1,0 +1,127 @@
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { TextInput, Button, Title, HelperText, ActivityIndicator } from 'react-native-paper';
+import firebase from '../firebase';
+
+export default function RegisterScreen({ navigation }) {
+  const [name, setName] = useState('');
+  const [aadhaar, setAadhaar] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [confirm, setConfirm] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const sendOtp = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const confirmation = await firebase.auth().signInWithPhoneNumber('+91' + phone);
+      setConfirm(confirmation);
+    } catch (e) {
+      setError('Failed to send OTP. Please check the number.');
+    }
+    setLoading(false);
+  };
+
+  const verifyOtp = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await confirm.confirm(otp);
+      const user = firebase.auth().currentUser;
+      await firebase.firestore().collection('users').doc(user.uid).set({
+        name,
+        aadhaar,
+        phone: '+91' + phone,
+        role: 'patient',
+      });
+    } catch (e) {
+      setError('Invalid OTP or registration failed.');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Title style={styles.title}>Register</Title>
+      <TextInput
+        label="Full Name"
+        value={name}
+        onChangeText={setName}
+        style={styles.input}
+        mode="outlined"
+      />
+      <TextInput
+        label="Aadhaar Number (mock)"
+        value={aadhaar}
+        onChangeText={setAadhaar}
+        style={styles.input}
+        mode="outlined"
+        keyboardType="number-pad"
+        maxLength={12}
+      />
+      <TextInput
+        label="Mobile Number"
+        value={phone}
+        onChangeText={setPhone}
+        style={styles.input}
+        mode="outlined"
+        keyboardType="phone-pad"
+        maxLength={10}
+        disabled={!!confirm}
+      />
+      {confirm && (
+        <TextInput
+          label="OTP"
+          value={otp}
+          onChangeText={setOtp}
+          style={styles.input}
+          mode="outlined"
+          keyboardType="number-pad"
+          maxLength={6}
+        />
+      )}
+      {error ? <HelperText type="error">{error}</HelperText> : null}
+      {loading ? (
+        <ActivityIndicator animating size="large" style={{ marginVertical: 16 }} />
+      ) : confirm ? (
+        <Button mode="contained" onPress={verifyOtp} style={styles.button}>
+          Verify OTP & Register
+        </Button>
+      ) : (
+        <Button mode="contained" onPress={sendOtp} style={styles.button}>
+          Send OTP
+        </Button>
+      )}
+      <Button mode="text" onPress={() => navigation.navigate('Login')}>
+        Already have an account? Login
+      </Button>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 16,
+  },
+  title: {
+    fontSize: 28,
+    marginBottom: 24,
+    color: '#1976d2',
+    fontWeight: 'bold',
+  },
+  input: {
+    width: '90%',
+    marginVertical: 8,
+  },
+  button: {
+    width: '90%',
+    marginVertical: 12,
+    paddingVertical: 8,
+  },
+});
