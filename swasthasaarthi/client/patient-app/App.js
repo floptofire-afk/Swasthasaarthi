@@ -1,71 +1,42 @@
+// App.js - Main app component with Firebase auth state and theme setup
 import React, { useEffect, useState } from 'react';
-import { Provider as PaperProvider, DefaultTheme } from 'react-native-paper';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { ActivityIndicator, View } from 'react-native';
-import firebase from './firebase';
-import WelcomeScreen from './screens/WelcomeScreen';
-import RegisterScreen from './screens/RegisterScreen';
-import LoginScreen from './screens/LoginScreen';
-import DashboardScreen from './screens/DashboardScreen';
-import BookAppointmentScreen from './screens/BookAppointmentScreen';
-import PrescriptionsScreen from './screens/PrescriptionsScreen';
-import MedicineHistoryScreen from './screens/MedicineHistoryScreen';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { PaperProvider, MD3LightTheme } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
+import { Slot } from 'expo-router';
 
-const Stack = createStackNavigator();
-
+// Custom theme for the app
 const theme = {
-  ...DefaultTheme,
+  ...MD3LightTheme,
   colors: {
-    ...DefaultTheme.colors,
+    ...MD3LightTheme.colors,
     primary: '#1976d2',
-    accent: '#43a047',
+    secondary: '#43a047',
+    surface: '#ffffff',
+    background: '#f5f5f5',
   },
 };
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = firebase.auth().onAuthStateChanged((u) => {
-      setUser(u);
-      setLoading(false);
+    // Listen to authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setIsLoading(false);
     });
-    return unsubscribe;
+
+    return unsubscribe; // Cleanup subscription on unmount
   }, []);
 
-  if (loading) {
-    return (
-      <PaperProvider theme={theme}>
-        <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </SafeAreaView>
-      </PaperProvider>
-    );
-  }
-
   return (
-    <PaperProvider theme={theme}>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {user ? (
-            <>
-              <Stack.Screen name="Dashboard" component={DashboardScreen} />
-              <Stack.Screen name="BookAppointment" component={BookAppointmentScreen} />
-              <Stack.Screen name="Prescriptions" component={PrescriptionsScreen} />
-              <Stack.Screen name="MedicineHistory" component={MedicineHistoryScreen} />
-            </>
-          ) : (
-            <>
-              <Stack.Screen name="Welcome" component={WelcomeScreen} />
-              <Stack.Screen name="Register" component={RegisterScreen} />
-              <Stack.Screen name="Login" component={LoginScreen} />
-            </>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <Slot />
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
